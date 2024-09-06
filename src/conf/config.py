@@ -2,7 +2,8 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    sqlalchemy_database_url: str = 'postgresql+psycopg2://user:password@host:port/db'
+    local_sqlalchemy_database_url: str = 'postgresql+psycopg2://user:password@host:port/db'
+    docker_sqlalchemy_database_url: str = 'postgresql+psycopg2://user:password@host:port/db'
     secret_key: str = 'secret_key'
     algorithm: str = 'algorithm'
     # mail_username: str = 'mail@mail.com'
