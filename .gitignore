@@ -1,0 +1,6 @@
+.venv
+.env
+local_pgdata
+pgadmin-data
+poetry.lock
+__pycache__
