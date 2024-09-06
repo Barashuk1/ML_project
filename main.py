@@ -9,12 +9,20 @@ from src.conf.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    r = aioredis.from_url(
-        settings.redis_url,
-        encoding="utf-8",
-        decode_responses=True
-    )
-    await FastAPILimiter.init(r)
+    try:
+        r = aioredis.from_url(
+            settings.redis_docker_url,
+            encoding="utf-8",
+            decode_responses=True
+        )
+        await FastAPILimiter.init(r)
+    except Exception:
+        r = aioredis.Redis(
+            host=settings.redis_host,
+            port=settings.redis_port,
+        )
+        await FastAPILimiter.init(r)
+
     yield
     await FastAPILimiter.close()
 

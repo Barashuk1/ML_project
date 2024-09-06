@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     # mail_server: str = 'mail.server.com'
     redis_host: str = 'host'
     redis_port: int = 6379
-    redis_url: str = 'redis://host:port/'
+    redis_docker_host: str = 'host'
+    redis_docker_url: str = 'redis://host:port/'
 
     class Config:
         env_file = ".env"
