@@ -15,6 +15,8 @@ class User(Base):
     password: Mapped[str] = mapped_column(String(256))
     chats: Mapped['Chat'] = relationship('Chat', backref='user')
     history: Mapped['History'] = relationship('History', backref='user')
+    refresh_token: Mapped[str | None]
+
 
 
 class Chat(Base):
