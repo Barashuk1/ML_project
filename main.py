@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
 from fastapi_limiter import FastAPILimiter
+from fastapi.middleware.cors import CORSMiddleware
 import redis.asyncio as aioredis
 from fastapi import FastAPI
 import uvicorn
 
+from src.routes import auth
 from src.conf.config import settings
 
 
@@ -29,6 +31,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+origins = ["*"]
+
+app.include_router(auth.router, prefix='/api')
 
 @app.get('/')
 async def read_root():
