@@ -34,6 +34,7 @@ app = FastAPI(lifespan=lifespan)
 origins = ["*"]
 
 app.include_router(auth.router, prefix='/api')
+app.include_router(pdf_router, prefix="/pdf")
 
 @app.get('/')
 async def read_root():
