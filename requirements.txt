@@ -1,0 +1,19 @@
+fastapi
+fastapi-limiter == 0.1.6
+uvicorn == 0.30.6
+pydantic-settings == 2.4.0
+sqlalchemy == 2.0.34
+psycopg2-binary == 2.9.9
+alembic == 1.13.2
+jose == 1.0.0
+passlib == 1.7.4
+python-multipart == 0.0.9
+bcrypt ==4.2.0
+asyncpg
+pgvector
+sentence-transformers
+transformers
+pandas
+numpy
+tqdm
+nltk

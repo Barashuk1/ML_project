@@ -67,3 +67,20 @@ class TokenModel(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
+
+class DocumentModel(BaseModel):
+    content: str
+    tokens: int
+    embedding: List[float]
+    user_id: int
+
+class DocumentCreate(DocumentModel):
+    pass
+
+class DocumentResponse(DocumentModel):
+    id: int
+
+    class ConfigDict:
+        from_attributes = True
+
