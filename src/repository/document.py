@@ -35,3 +35,16 @@ async def insert_data_from_dataframe(df: pd.DataFrame, db: Session):
         )
         db.add(new_document)
     db.commit()
+
+
+async def read_pdf(file_content, user_id, db: Session):
+
+    pdf_reader = PyPDF2.PdfFileReader(io.BytesIO(file_content))
+    text = ""
+
+    # Извлекаем текст из всех страниц PDF
+    for page_num in range(pdf_reader.getNumPages()):
+        page = pdf_reader.getPage(page_num)
+        text += page.extract_text()
+
+    return text

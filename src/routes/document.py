@@ -3,7 +3,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from src.repository.document import create_document, insert_data_from_dataframe
+from src.repository.document import create_document, insert_data_from_dataframe, read_pdf
 from src.services.text_processing_service import (
     chunk_text_by_sentences, process_text_chunks,
     process_input_with_retrieval, read_pdf
@@ -19,7 +19,7 @@ router = APIRouter(prefix='/document', tags=["document"])
 @router.post("/upload_file/", status_code=status.HTTP_201_CREATED)
 async def upload_file(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
     current_user: User = Depends(auth_service.get_current_user)
 ):
     """
@@ -30,6 +30,7 @@ async def upload_file(
     :param current_user: The current authenticated user.
     :return: A message indicating the success of the operation.
     """
+
     # Read the PDF file and convert its content to text
     text = await read_pdf(file)
 
