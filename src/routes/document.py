@@ -1,6 +1,5 @@
 from fastapi import (
-    APIRouter, HTTPException, Depends, status,
-    Security, BackgroundTasks, Request
+    APIRouter, HTTPException, Depends, status, UploadFile, File,
 )
 
 
@@ -10,12 +9,12 @@ from src.database.models import User
 from src.schemas import  DocumentModel, DocumentResponse
 from src.repository.document import create_document, insert_data_from_dataframe, create_index
 from src.services.text_processing_service import chunk_text_by_sentences, process_text_chunks, \
-    process_input_with_retrieval
+    process_input_with_retrieval, read_pdf
 from src.services.auth import auth_service
 router = APIRouter(prefix='/document', tags=["document"])
 
 
-@router.post("/", response_model= DocumentResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 async def create_document(document: DocumentModel, db: Session = Depends(get_db),
                           current_user: User = Depends(auth_service.get_current_user)):
     """
@@ -48,8 +47,7 @@ async def upload_file(file: UploadFile = File(...),  db: Session = Depends(get_d
     :return: A message indicating the success of the operation.
     """
     # Read the PDF file and convert its content to text
-    file_content = await file.read()
-    text = await read_pdf(file_content, current_user.id, db)
+    text = await read_pdf(file)
 
     # Chunk the text by sentences
     text_chunks = await chunk_text_by_sentences(text)
