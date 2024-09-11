@@ -2,6 +2,8 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
+import pgvector
+from sqlalchemy.engine.base import Connection
 
 from alembic import context
 
@@ -32,6 +34,20 @@ target_metadata = Base.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+
+def do_run_migrations(connection: Connection) -> None:
+    # Need to hack the "vector" type into postgres dialect schema types.
+    # Otherwise, `alembic check` does not recognize the type
+    connection.dialect.ischema_names['vector'] = pgvector.sqlalchemy.Vector
+
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
 
 
 def run_migrations_offline() -> None:
@@ -72,12 +88,13 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        # context.configure(
+        #     connection=connection, target_metadata=target_metadata
+        # )
 
-        with context.begin_transaction():
-            context.run_migrations()
+        # with context.begin_transaction():
+        #     context.run_migrations()
+        do_run_migrations(connection)
 
 
 if context.is_offline_mode():

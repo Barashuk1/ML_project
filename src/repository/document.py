@@ -1,9 +1,8 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-from pgvector.asyncpg import register_vector
-import pandas as pd
+from src.database.models import Document
 from src.schemas import DocumentModel
-from src.database.models import User, Document
+from sqlalchemy.orm import Session
+import pandas as pd
+
 
 async def create_document(body: DocumentModel, db: Session) -> Document:
     """
@@ -19,23 +18,6 @@ async def create_document(body: DocumentModel, db: Session) -> Document:
     db.refresh(new_document)
     return new_document
 
-
-async def create_index(db: Session):
-    """
-    Create an index on the 'embedding' column of the 'documents' table.
-
-    :param db: The asynchronous database session.
-    """
-    try:
-        db.execute(
-            text(
-                "CREATE INDEX idx_documents_embedding ON documents USING ivfflat (embedding vector_cosine_ops) WITH (lists = 10);"
-            )
-        )
-        db.commit()
-        print("Index created successfully.")
-    except Exception as e:
-        print(f"Error creating index: {e}")
 
 async def insert_data_from_dataframe(df: pd.DataFrame, db: Session):
     """
@@ -53,5 +35,3 @@ async def insert_data_from_dataframe(df: pd.DataFrame, db: Session):
         )
         db.add(new_document)
     db.commit()
-
-    
