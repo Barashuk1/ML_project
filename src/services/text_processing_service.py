@@ -12,6 +12,29 @@ from sqlalchemy.orm import Session
 #from src.repository.file_manager import extract_text_from_pdf
 nltk.download('punkt')
 from nltk.tokenize import sent_tokenize
+import PyPDF2
+from fastapi import UploadFile, File, HTTPException, status
+
+
+async def read_pdf(file: UploadFile = File(...)):
+    """
+    Asynchronously read a PDF file and convert its content to text.
+
+    :param file: The uploaded PDF file.
+    :return: The extracted text from the PDF.
+    """
+    # Check if the uploaded file is a PDF
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be a PDF")
+
+    # Read the PDF file and convert its content to text
+    file_content = await file.read()
+    pdf_reader = PyPDF2.PdfReader(file_content)
+    text = ""
+    for page in pdf_reader.pages:
+        text += page.extract_text() + "\n"
+
+    return text
 
 
 async def num_tokens_from_string(string: str) -> int:
@@ -104,7 +127,7 @@ async def get_top3_similar_docs(
     LIMIT :limit
     """,  (embedding_array,))
 
-    result = db.execute(query)
+    result = db.execute(query, parameters={"user_id": user_id, "limit": limit})
     return result.fetchall()
 
 
