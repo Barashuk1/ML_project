@@ -5,25 +5,22 @@ import redis.asyncio as aioredis
 from fastapi import FastAPI
 import uvicorn
 
-from src.routes import auth
+from src.routes import auth, document
 from src.conf.config import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    try:
-        r = aioredis.from_url(
-            settings.redis_docker_url,
-            encoding="utf-8",
-            decode_responses=True
-        )
-        await FastAPILimiter.init(r)
-    except Exception:
-        r = aioredis.Redis(
-            host=settings.redis_host,
-            port=settings.redis_port,
-        )
-        await FastAPILimiter.init(r)
+    # r = aioredis.from_url(
+    #     settings.redis_docker_url,
+    #     encoding="utf-8",
+    #     decode_responses=True
+    # )
+    r = aioredis.Redis(
+        host=settings.redis_host,
+        port=settings.redis_port,
+    )
+    await FastAPILimiter.init(r)
 
     yield
     await FastAPILimiter.close()
@@ -33,8 +30,8 @@ app = FastAPI(lifespan=lifespan)
 
 origins = ["*"]
 
-app.include_router(auth.router, prefix='/api')
-app.include_router(pdf_router, prefix="/pdf")
+app.include_router(auth.router, prefix='/ml_project')
+app.include_router(document.router, prefix='/ml_project')
 
 @app.get('/')
 async def read_root():
