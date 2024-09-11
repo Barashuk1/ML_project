@@ -27,6 +27,7 @@ nltk = "^3.9.1"
 tiktoken = "^0.7.0"
 pypdf2 = "^3.0.1"
 python-jose = "^3.3.0"
+pycryptodome = "^3.20.0"
 
 
 [build-system]

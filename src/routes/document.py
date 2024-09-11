@@ -19,7 +19,7 @@ router = APIRouter(prefix='/document', tags=["document"])
 @router.post("/upload_file/", status_code=status.HTTP_201_CREATED)
 async def upload_file(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
     current_user: User = Depends(auth_service.get_current_user)
 ):
     """
