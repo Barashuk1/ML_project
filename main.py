@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
+from fastapi.responses import HTMLResponse
 from fastapi_limiter import FastAPILimiter
 from fastapi.middleware.cors import CORSMiddleware
 import redis.asyncio as aioredis
 from fastapi import FastAPI
 import uvicorn
+import aiofiles
 
 from src.routes import auth, document
 from src.conf.config import settings
@@ -33,7 +35,7 @@ origins = ["*"]
 app.include_router(auth.router, prefix='/ml_project')
 app.include_router(document.router, prefix='/ml_project')
 
-@app.get('/')
+@app.get('/', response_class=HTMLResponse)
 async def read_root():
     """
     The read_root function returns a dictionary with the key 'message' and
@@ -41,7 +43,10 @@ async def read_root():
 
     :return: A dictionary
     """
-    return {'message': 'Welcome to our ML project'}
+    async with aiofiles.open("src/services/templates/chat.html", mode="r") as file:
+        html_content = await file.read()
+        print(html_content)
+    return HTMLResponse(content=html_content)
 
 
 if __name__ == '__main__':
