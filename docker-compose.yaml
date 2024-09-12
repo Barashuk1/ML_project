@@ -46,8 +46,8 @@ services:
   #     redis:
   #       condition: service_started
   #   environment:
-  #     DATABASE_URL: ${DOCKER_SQLALCHEMY_DATABASE_URL}
-  #     REDIS_URL: ${REDIS_URL}
+  #     DOCKER_SQLALCHEMY_DATABASE_URL: ${DOCKER_SQLALCHEMY_DATABASE_URL}
+  #     REDIS_DOCKER_URL: ${REDIS_URL}
   #   ports:
   #     - "${APP_PORT}:8000"
   #   volumes:

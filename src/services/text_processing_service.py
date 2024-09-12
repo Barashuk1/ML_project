@@ -1,19 +1,21 @@
 from typing import List
+import io
 
-import tiktoken
-import pandas as pd
-import numpy as np
+from fastapi import UploadFile, File, HTTPException, status
+from sentence_transformers import SentenceTransformer
+from nltk.tokenize import sent_tokenize
+from sqlalchemy.orm import Session
+from transformers import pipeline
 from sqlalchemy import text
 from tqdm.asyncio import tqdm
-from sentence_transformers import SentenceTransformer
-import nltk
-from transformers import pipeline
-from sqlalchemy.orm import Session
-#from src.repository.file_manager import extract_text_from_pdf
-nltk.download('punkt')
-from nltk.tokenize import sent_tokenize
+import pandas as pd
+import numpy as np
+import tiktoken
 import PyPDF2
-from fastapi import UploadFile, File, HTTPException, status
+import nltk
+
+nltk.download('punkt_tab')
+nltk.download('punkt')
 
 
 async def read_pdf(file: UploadFile = File(...)):
@@ -29,7 +31,7 @@ async def read_pdf(file: UploadFile = File(...)):
 
     # Read the PDF file and convert its content to text
     file_content = await file.read()
-    pdf_reader = PyPDF2.PdfReader(file_content)
+    pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_content))
     text = ""
     for page in pdf_reader.pages:
         text += page.extract_text() + "\n"
@@ -41,6 +43,7 @@ async def num_tokens_from_string(string: str) -> int:
     encoding = tiktoken.get_encoding("cl100k_base")
     num_tokens = len(encoding.encode(string))
     return num_tokens
+
 
 async def chunk_text_by_sentences(text, max_tokens=150):
     sentences = sent_tokenize(text)
@@ -91,6 +94,7 @@ async def get_embeddings(text):
 async def combine_context_and_input(context, user_input):
     return f"User: {user_input}\nAssistant:{context}"
 
+
 async def get_completion_from_messages(context, user_input, model='distilgpt2', max_tokens=850):
     generator = pipeline('text-generation', model=model)
     combined_text = await combine_context_and_input(context, user_input)
@@ -103,7 +107,7 @@ async def get_completion_from_messages(context, user_input, model='distilgpt2', 
 
 
 async def get_top3_similar_docs(
-        query_embedding: List[float],
+        query_embedding: np.ndarray,
         user_id: int,
         db: Session,
         limit: int = 3
@@ -117,17 +121,25 @@ async def get_top3_similar_docs(
     :param limit: The number of similar documents to return (default is 5).
     :return: A list of tuples containing the content of similar documents.
     """
-    embedding_array = np.array(query_embedding)
+    query_embedding = query_embedding.tolist()
 
     query = text("""
-    SELECT content 
-    FROM documents 
-    WHERE user_id = :user_id 
-    ORDER BY embedding <=> %s
+    SELECT content
+    FROM documents
+    WHERE user_id = :user_id
+    ORDER BY embedding <=> CAST(:query_vector AS vector)
     LIMIT :limit
-    """,  (embedding_array,))
+    """)
 
-    result = db.execute(query, parameters={"user_id": user_id, "limit": limit})
+    result = db.execute(
+        query,
+        {
+            "user_id": user_id,
+            "query_vector": query_embedding,
+            "limit": limit
+        }
+    )
+
     return result.fetchall()
 
 
@@ -142,4 +154,3 @@ async def process_input_with_retrieval(user_input, user_id: int,
     # Step 3: Generate response using the context and user input
     response = await get_completion_from_messages(context, user_input)
     return response
-

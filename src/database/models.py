@@ -1,12 +1,14 @@
-from psycopg2._psycopg import List
 from sqlalchemy.orm import (
     Mapped, mapped_column, relationship, declarative_base
 )
-from sqlalchemy import Column, Vector
-from sqlalchemy import String, ForeignKey
 from sqlalchemy.sql.sqltypes import DateTime
+from sqlalchemy.dialects import postgresql
+from sqlalchemy import String, ForeignKey
+from pgvector.sqlalchemy import Vector
 
 Base = declarative_base()
+
+postgresql.VECTOR = Vector
 
 
 class User(Base):
@@ -19,7 +21,6 @@ class User(Base):
     history: Mapped['History'] = relationship('History', backref='user')
     documents: Mapped['Document'] = relationship('Document', backref='user')
     refresh_token: Mapped[str | None]
-
 
 
 class Chat(Base):
@@ -54,4 +55,6 @@ class Document(Base):
     content: Mapped[str]
     tokens: Mapped[int]
     embedding: Mapped[list] = mapped_column(Vector(768))
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey('users.id', ondelete='CASCADE')
+    )
