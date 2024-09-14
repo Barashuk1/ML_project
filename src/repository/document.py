@@ -39,35 +39,23 @@ async def insert_data_from_dataframe(df: pd.DataFrame, db: Session):
     db.commit()
 
 
-async def read_pdf(file_content, user_id, db: Session):
-
-    pdf_reader = PyPDF2.PdfFileReader(io.BytesIO(file_content))
-    text = ""
-
-    # Извлекаем текст из всех страниц PDF
-    for page_num in range(pdf_reader.getNumPages()):
-        page = pdf_reader.getPage(page_num)
-        text += page.extract_text()
-
-    return text
-
-
 async def get_user_history(user_id, limit, db: Session):
-    query = select(History).where(History.user_id == user_id).limit(limit)
+
+    query = select(History).where(History.user_id == user_id).order_by(History.created_at.desc()).limit(limit)
     result = db.execute(query).scalars().all()
-    return [
-        {
-            "id": record.id,
-            "request": record.request,
-            "response": record.response,
-            "user_id": record.user_id,
-            "created_at": record.created_at.isoformat()
-        }
-        for record in result
-    ]
+    return result
 
 
 async def insert_data_history(db: Session, request: str, response: str, user_id: int):
     new_record = History(request=request, response=response, user_id=user_id, created_at=datetime.utcnow())
     db.add(new_record)
     db.commit()
+
+
+async def delete_document(db: Session, user_id: int):
+    db_result = db.execute(select(Document).where(Document.user_id == user_id))
+    db_history = db.execute(select(History).where(History.user_id == user_id))
+    db.delete(db_result)
+    db.delete(db_history)
+    db.commit()
+
