@@ -149,8 +149,9 @@ async def process_input_with_retrieval(user_input, user_id: int,
     related_docs = await get_top3_similar_docs(await get_embeddings(user_input), user_id, db)
 
     # Step 2: Create context from related documents
-    context = f"Relevant information: {related_docs[0][0]} {related_docs[1][0]} {related_docs[2][0]} "
+    context = f"Relevant information:"
 
     # Step 3: Generate response using the context and user input
     response = await get_completion_from_messages(context, user_input)
+    await document.insert_data_history(db, user_input, response, user_id)
     return response
