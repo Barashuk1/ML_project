@@ -1,7 +1,9 @@
-from src.database.models import Document
+from src.database.models import Document, History
 from src.schemas import DocumentModel
 from sqlalchemy.orm import Session
 import pandas as pd
+from datetime import datetime
+from sqlalchemy import select
 
 
 async def create_document(body: DocumentModel, db: Session) -> Document:
@@ -48,3 +50,24 @@ async def read_pdf(file_content, user_id, db: Session):
         text += page.extract_text()
 
     return text
+
+
+async def get_user_history(user_id, limit, db: Session):
+    query = select(History).where(History.user_id == user_id).limit(limit)
+    result = db.execute(query).scalars().all()
+    return [
+        {
+            "id": record.id,
+            "request": record.request,
+            "response": record.response,
+            "user_id": record.user_id,
+            "created_at": record.created_at.isoformat()
+        }
+        for record in result
+    ]
+
+
+async def insert_data_history(db: Session, request: str, response: str, user_id: int):
+    new_record = History(request=request, response=response, user_id=user_id, created_at=datetime.utcnow())
+    db.add(new_record)
+    db.commit()

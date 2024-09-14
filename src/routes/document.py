@@ -3,7 +3,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from src.repository.document import create_document, insert_data_from_dataframe, read_pdf
+from src.repository.document import create_document, insert_data_from_dataframe, read_pdf, get_user_history
 from src.services.text_processing_service import (
     chunk_text_by_sentences, process_text_chunks,
     process_input_with_retrieval, read_pdf
@@ -64,3 +64,16 @@ async def chat(
     response = await process_input_with_retrieval(user_input, current_user.id, db)
 
     return {"response": response}
+
+
+@router.get("/get_history/")
+async def get_history(
+        user_id: Optional[int] = Query(None, description="ID пользователя"),
+        limit: int = Query(10, description="Количество записей"),
+        db: Session = Depends(get_db)):
+
+    if user_id is None:
+        raise HTTPException(status_code=400, detail="User ID is required")
+
+    history = await get_user_history(user_id, limit, db)
+    return history
