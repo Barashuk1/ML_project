@@ -3,8 +3,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from src.repository.document import (create_document, insert_data_from_dataframe, read_pdf, get_user_history,
-                                    delete_documents, delete_user_history)
+from src.repository.document import create_document, insert_data_from_dataframe, read_pdf, get_user_history
 from src.services.text_processing_service import (
     chunk_text_by_sentences, process_text_chunks,
     process_input_with_retrieval, read_pdf
