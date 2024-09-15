@@ -100,3 +100,9 @@ async def delete_content(db: Session = Depends(get_db),
 
     return await delete_document(db=db, user_id=current_user.id)
 
+
+
+    history = await get_user_history(user_id, limit, db)
+    return history
+
+
