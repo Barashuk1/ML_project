@@ -53,14 +53,12 @@ async def read_pdf(file_content, user_id, db: Session):
 
 
 async def get_user_history(user_id, limit, db: Session):
-    query = select(History).where(History.user_id == user_id).limit(limit)
+    query = select(History).where(History.user_id == user_id).order_by(History.created_at.desc()).limit(limit)
     result = db.execute(query).scalars().all()
     return [
         {
-            "id": record.id,
             "request": record.request,
             "response": record.response,
-            "user_id": record.user_id,
             "created_at": record.created_at.isoformat()
         }
         for record in result
@@ -71,3 +69,19 @@ async def insert_data_history(db: Session, request: str, response: str, user_id:
     new_record = History(request=request, response=response, user_id=user_id, created_at=datetime.utcnow())
     db.add(new_record)
     db.commit()
+
+
+async def delete_documents(user_id, db: Session):
+    db.execute(
+        delete(Document).where(Document.user_id == user_id)
+    )
+    db.commit()
+    return True
+
+
+async def delete_user_history(user_id, db: Session):
+    db.execute(
+        delete(History).where(History.user_id == user_id)
+    )
+    db.commit()
+    return True
