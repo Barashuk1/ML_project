@@ -84,3 +84,11 @@ class DocumentResponse(DocumentModel):
     class ConfigDict:
         from_attributes = True
 
+class HistoryModel(BaseModel):
+    request: str
+    response: str
+    created_at: datetime
+    class ConfigDict:
+        from_attributes = True
+
+
