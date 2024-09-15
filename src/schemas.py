@@ -91,4 +91,12 @@ class HistoryModel(BaseModel):
     class ConfigDict:
         from_attributes = True
 
+class QuestionRequest(BaseModel):
+    document: str
+    question: str
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+
 

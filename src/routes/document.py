@@ -72,7 +72,7 @@ async def chat(
 @router.get("/history/", response_model=List[HistoryModel])
 async def get_history(
     current_user: User = Depends(auth_service.get_current_user),
-    db: Session = Depends(get_db()),
+    db: Session = Depends(get_db),
     limit: int = Query(10, description="Number of history records to return")
 ):
     """
