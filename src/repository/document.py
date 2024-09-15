@@ -57,8 +57,10 @@ async def get_user_history(user_id, limit, db: Session):
     result = db.execute(query).scalars().all()
     return [
         {
+            "id": record.id,
             "request": record.request,
             "response": record.response,
+            "user_id": record.user_id,
             "created_at": record.created_at.isoformat()
         }
         for record in result
