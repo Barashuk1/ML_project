@@ -53,9 +53,11 @@ async def insert_data_history(db: Session, request: str, response: str, user_id:
 
 
 async def delete_document(db: Session, user_id: int):
-    db_result = db.execute(select(Document).where(Document.user_id == user_id))
-    db_history = db.execute(select(History).where(History.user_id == user_id))
-    db.delete(db_result)
-    db.delete(db_history)
+    db_result = db.scalars(select(Document).where(Document.user_id == user_id)).all()
+    db_history = db.scalars(select(History).where(History.user_id == user_id)).all()
+    for document in documents:
+        db.delete(db_result)
+    for history in histories:
+        db.delete(db_history)
     db.commit()
 
