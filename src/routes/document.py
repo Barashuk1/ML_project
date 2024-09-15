@@ -69,33 +69,13 @@ async def chat(
 
 @router.get("/get_history/")
 async def get_history(
-        current_user: User = Depends(auth_service.get_current_user),
+        user_id: Optional[int] = Query(None, description="ID пользователя"),
         limit: int = Query(10, description="Количество записей"),
         db: Session = Depends(get_db)):
-            
-    history = await get_user_history(current_user.id, limit, db)
+
+    if user_id is None:
+        raise HTTPException(status_code=400, detail="User ID is required")
+
+    history = await get_user_history(user_id, limit, db)
     return history
 
-
-@router.delete("/delete_documents/")
-async def delete_document(
-        db: Session = Depends(get_db),
-        current_user: User = Depends(auth_service.get_current_user)
-):
-    success = await delete_documents(current_user.id, db)
-    if success:
-        return {"message": "All documents deleted successfully"}
-    else:
-        raise HTTPException(status_code=404, detail="No documents found")
-
-
-@router.delete("/delete_history/")
-async def delete_history(
-        db: Session = Depends(get_db),
-        current_user: User = Depends(auth_service.get_current_user)
-):
-    success = await delete_user_history(current_user.id, db)
-    if success:
-        return {"message": "History cleared"}
-    else:
-        raise HTTPException(status_code=404, detail="No history found")
