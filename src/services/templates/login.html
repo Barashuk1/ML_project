@@ -151,10 +151,6 @@
   
 </head>
 <body>
-  <video autoplay loop muted plays-inline class="back-video">
-    <source src="static/back-video.mp4" type="video/mp4">
-  </video>
-
   <div class="container">
     <h2 class="card-title">Login</h2>
     <form id="login-form">
@@ -169,7 +165,7 @@
       
       <button type="submit" class="btn btn-primary">Login</button>
       <div class="register-page">
-        <p>Do not have an account? <a href="/register">Register</a></p>
+        <p>Do not have an account? <a href="/ml_project/register-page">Register</a></p>
       </div>  
     </form>
     <div id="login-error" style="color: red; text-align: center; margin-top: 10px;"></div>
@@ -182,7 +178,7 @@
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         
-        fetch('/submit_login', {
+        fetch('/ml_project/auth/submit_login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -194,7 +190,9 @@
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            if (data.message === 'Login successful!') {
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('refresh_token', data.refresh_token);
                 window.location.href = '/';
             } else {
                 document.getElementById('login-error').textContent = data.message;

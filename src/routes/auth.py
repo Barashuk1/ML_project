@@ -2,12 +2,11 @@ from fastapi import (
     APIRouter, HTTPException, Depends, status,
     Security, BackgroundTasks, Request
 )
-from fastapi.security import (
-    OAuth2PasswordRequestForm, HTTPAuthorizationCredentials, HTTPBearer
-)
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from src.database.db import get_db
-from src.schemas import UserModel, UserResponse, TokenModel
+from src.schemas import TokenModel, RegisterRequest, RegisterResponse, LoginResponse
 from src.repository import auth as repository_users
 from src.services.auth import auth_service
 
@@ -16,10 +15,10 @@ security = HTTPBearer()
 
 
 @router.post(
-    "/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+    "/submit_register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED
 )
 async def signup(
-    body: UserModel,
+    body: RegisterRequest,
     background_tasks: BackgroundTasks,
     request: Request,
     db: Session = Depends(get_db)
@@ -35,17 +34,15 @@ async def signup(
     """
     exist_user = await repository_users.get_user_by_email(body.email, db)
     if exist_user:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="Email already use"
-        )
+        return {"message": "Email already exists!"}
     body.password = auth_service.get_password_hash(body.password)
     new_user = await repository_users.create_user(body, db)
-    return {"user": new_user, "detail": "User successfully created"}
+    return {"message": "Registration successful!"}
 
 
-@router.post("/login", response_model=TokenModel)
+@router.post("/submit_login", response_model=LoginResponse)
 async def login(
-    body: OAuth2PasswordRequestForm = Depends(),
+    body: RegisterRequest,
     db: Session = Depends(get_db)
 ):
     """
@@ -56,7 +53,7 @@ async def login(
     :raise HTTPException: If the email or password is invalid or user is inactive.
     :return: The response containing the access and refresh tokens and token type.
     """
-    user = await repository_users.get_user_by_email(body.username, db)
+    user = await repository_users.get_user_by_email(body.email, db)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email"
@@ -73,11 +70,12 @@ async def login(
         data={"sub": user.email}
     )
     await repository_users.update_token(user, refresh_token, db)
-    return {
+    return JSONResponse(content={
+        "message": "Login successful!",
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer"
-    }
+    })
 
 
 @router.get('/refresh_token', response_model=TokenModel)

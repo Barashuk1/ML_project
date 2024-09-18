@@ -20,7 +20,7 @@ class Auth:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     SECRET_KEY = settings.secret_key
     ALGORITHM = settings.algorithm
-    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/ml_project/auth/login")
+    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/ml_project/auth/submit_login")
 
     def verify_password(
         self,

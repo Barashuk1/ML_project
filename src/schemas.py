@@ -74,6 +74,7 @@ class DocumentModel(BaseModel):
     tokens: int
     embedding: List[float]
     user_id: int
+    document_name: str
 
 class DocumentCreate(DocumentModel):
     pass
@@ -100,3 +101,9 @@ class RegisterRequest(BaseModel):
     password: str
 
 
+class RegisterResponse(BaseModel):
+    message: str
+
+
+class LoginResponse(TokenModel):
+    message: str

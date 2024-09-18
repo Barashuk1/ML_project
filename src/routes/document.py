@@ -1,22 +1,34 @@
 from typing import List
 
 from fastapi import (
-    APIRouter, HTTPException, Depends, status, UploadFile, File, Query,
+    APIRouter, Depends, status, UploadFile, File, Query,
 )
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from src.repository.document import create_document, insert_data_from_dataframe, get_user_history, \
-    delete_document
+import src.repository.document as document_repository
 from src.services.text_processing_service import (
     chunk_text_by_sentences, process_text_chunks,
     process_input_with_retrieval, read_pdf
 )
-from src.schemas import DocumentModel, DocumentResponse, HistoryModel
+from src.schemas import HistoryModel, QuestionRequest
 from src.services.auth import auth_service
 from src.database.models import User
 from src.database.db import get_db
 
 router = APIRouter(prefix='/document', tags=["document"])
+
+
+@router.get("/documents")
+async def get_documents(
+    current_user: User = Depends(auth_service.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    The get_documents function returns a list of documents.
+    """
+    documents = await document_repository.get_documents(current_user.id, db)
+    return JSONResponse(content={"documents": documents})
 
 
 @router.post("/upload_file/", status_code=status.HTTP_201_CREATED)
@@ -34,24 +46,29 @@ async def upload_file(
     :return: A message indicating the success of the operation.
     """
 
-    # Read the PDF file and convert its content to text
-    text = await read_pdf(file)
+    try:
+        filename = file.filename
+        await document_repository.create_chat(filename, current_user.id, db)
+        # Read the PDF file and convert its content to text
+        text = await read_pdf(file)
 
-    # Chunk the text by sentences
-    text_chunks = await chunk_text_by_sentences(text)
+        # Chunk the text by sentences
+        text_chunks = await chunk_text_by_sentences(text)
 
-    # Process the text chunks and create a DataFrame
-    df = await process_text_chunks(text_chunks, current_user.id)
+        # Process the text chunks and create a DataFrame
+        df = await process_text_chunks(text_chunks, current_user.id)
 
-    # Insert the data from the DataFrame into the database
-    await insert_data_from_dataframe(df, db)
+        # Insert the data from the DataFrame into the database
+        await document_repository.insert_data_from_dataframe(df, filename, db)
 
-    return {"message": "File uploaded and processed successfully"}
+        return JSONResponse(content={"message": f"Files uploaded successfully!"})
+    except Exception as e:
+        return JSONResponse(content={"message": "File upload failed!"}, status_code=500)
 
 
 @router.post("/chat/")
 async def chat(
-    user_input: str,
+    request: QuestionRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(auth_service.get_current_user)
 ):
@@ -64,7 +81,7 @@ async def chat(
     :return: The generated response.
     """
     # Process the input with retrieval
-    response = await process_input_with_retrieval(user_input, current_user.id, db)
+    response = await process_input_with_retrieval(*request, current_user.id, db)
 
     return {"response": response}
 
@@ -83,13 +100,15 @@ async def get_history(
     :param limit: The maximum number of history records to return.
     :return: A list of history records.
     """
-    history_records = await get_user_history(db=db, user_id=current_user.id, limit=limit)
+    history_records = await document_repository.get_user_history(db=db, user_id=current_user.id, limit=limit)
     return history_records
 
 
 @router.delete("/delete_data", status_code=status.HTTP_202_ACCEPTED)
-async def delete_content(db: Session = Depends(get_db),
-                         current_user: User = Depends(auth_service.get_current_user)):
+async def delete_content(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth_service.get_current_user)
+):
     """
     Delete all data from the database.
 
@@ -98,4 +117,4 @@ async def delete_content(db: Session = Depends(get_db),
     :return: A message indicating the success of the operation.
     """
 
-    return await delete_document(db=db, user_id=current_user.id)
+    return await document_repository.delete_document(db=db, user_id=current_user.id)
