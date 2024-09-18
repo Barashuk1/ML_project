@@ -85,11 +85,12 @@
 
         .input-group {
             display: flex;
+            justify-content: center;
             align-items: center;
         }
 
         .input-group input {
-            width: 85%;
+            width: 70%;
             padding: 10px;
             border: none;
             border-radius: 5px;
@@ -97,7 +98,7 @@
         }
 
         .input-group button {
-            width: 15%;
+            width: 20%;
             background: #fff;
             border: none;
             border-radius: 5px;
@@ -110,17 +111,13 @@
     </style>
 </head>
 <body>
-
     <div class="container">
         <h2 class="card-title">Document Chat</h2>
         <form id="document-form">
             <div class="form-group">
                 <label for="document-select">Select a Document:</label>
                 <select id="document-select" name="document">
-                    <option value="doc1.pdf">Document 1</option>
-                    <option value="doc2.pdf">Document 2</option>
-                    <option value="doc3.pdf">Document 3</option>
-                    <!-- Add more documents as needed -->
+                    <!-- Options will be populated here by JavaScript -->
                 </select>
             </div>
         </form>
@@ -128,15 +125,41 @@
         <div class="chat-box" id="chat-box">
             <div class="message bot">Hello! Please select a document to start the chat.</div>
         </div>
-
+    
         <div class="input-group">
             <input type="text" id="user-input" placeholder="Type your question here...">
             <button type="button" onclick="sendMessage()">Send</button>
         </div>
+    
+        <div class="input-group" style="margin-top: 20px;">
+            <input type="file" id="file-input" multiple>
+            <button type="button" onclick="uploadFiles()">Upload Files</button>
+        </div>
     </div>
-
+    
     <script>
-        function sendMessage() {
+        // Fetch the list of documents from the server and populate the select element
+        async function loadDocuments() {
+            try {
+                const response = await fetch('/documents');
+                const data = await response.json();
+                
+                const select = document.getElementById('document-select');
+                select.innerHTML = ''; // Clear existing options
+                
+                data.documents.forEach(doc => {
+                    const option = document.createElement('option');
+                    option.value = doc;
+                    option.textContent = doc;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading documents:', error);
+            }
+        }
+
+        // Function to handle sending messages
+        async function sendMessage() {
             const chatBox = document.getElementById('chat-box');
             const userInput = document.getElementById('user-input');
             const message = userInput.value.trim();
@@ -148,20 +171,63 @@
             userMessage.textContent = message;
             chatBox.appendChild(userMessage);
 
-            // Simulate bot response
-            const botMessage = document.createElement('div');
-            botMessage.classList.add('message', 'bot');
-            botMessage.textContent = "Processing your question..."; // Placeholder for real bot logic
-            chatBox.appendChild(botMessage);
+            const documentSelected = document.getElementById('document-select').value;
 
-            // Clear input field
+            try {
+                const response = await fetch('/question', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        document: documentSelected,
+                        question: message
+                    })
+                });
+                const data = await response.json();
+
+                const botMessage = document.createElement('div');
+                botMessage.classList.add('message', 'bot');
+                botMessage.textContent = data.answer;
+                chatBox.appendChild(botMessage);
+            } catch (error) {
+                const botMessage = document.createElement('div');
+                botMessage.classList.add('message', 'bot');
+                botMessage.textContent = 'Error: Unable to process your request.';
+                chatBox.appendChild(botMessage);
+            }
+
             userInput.value = "";
-
-            // Scroll chat to the bottom
             chatBox.scrollTop = chatBox.scrollHeight;
-
-            // Here you would add the logic to send the question to the server and get the response
         }
+
+        async function uploadFiles() {
+            const fileInput = document.getElementById('file-input');
+            const files = fileInput.files;
+
+            if (files.length === 0) {
+                alert("Please select at least one file!");
+                return;
+            }
+
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                alert(data.message);
+            } catch (error) {
+                alert('Error: Unable to upload the files.');
+            }
+        }
+
+        window.onload = loadDocuments;
     </script>
 </body>
 </html>

@@ -5,7 +5,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from src.repository.document import create_document, insert_data_from_dataframe, read_pdf, get_user_history, \
+from src.repository.document import create_document, insert_data_from_dataframe, get_user_history, \
     delete_document
 from src.services.text_processing_service import (
     chunk_text_by_sentences, process_text_chunks,
@@ -72,7 +72,7 @@ async def chat(
 @router.get("/history/", response_model=List[HistoryModel])
 async def get_history(
     current_user: User = Depends(auth_service.get_current_user),
-    db: Session = Depends(get_db()),
+    db: Session = Depends(get_db),
     limit: int = Query(10, description="Number of history records to return")
 ):
     """
