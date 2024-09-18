@@ -3,11 +3,14 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi_limiter import FastAPILimiter
 from fastapi.middleware.cors import CORSMiddleware
 import redis.asyncio as aioredis
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, HTTPException, status, Depends
 import uvicorn
 import aiofiles
 import shutil, os
-
+from sqlalchemy.orm import Session
+from src.database.models import User
+from src.database.db import get_db
+from src.services.auth import auth_service
 from src.routes import auth, document
 from src.conf.config import settings
 from src.schemas import *
@@ -77,11 +80,23 @@ async def read_root():
     return HTMLResponse(content=html_content)
 
 @app.post("/submit_register")
-async def register(request: RegisterRequest):
-    email = request.email
-    password = request.password
-    
-    #ЛОГИКА СОХРАНЕНИЯ ДАННЫХ
+async def register(request: RegisterRequest, db: Session = Depends(get_db)):
+    existing_user = db.query(User).filter(User.email == request.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email is already registered"
+        )
+
+    new_user = User(
+        email=request.email,
+        password=auth_service.get_password_hash(request.password),
+        user_name=request.email.split('@')[0],
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
     
     return JSONResponse(content={"message": "Registration successful!"})
 
@@ -93,16 +108,21 @@ async def read_root():
     return HTMLResponse(content=html_content)
 
 @app.post("/submit_login")
-async def login(request: RegisterRequest):
-    email = request.email
-    password = request.password
+async def login(request: RegisterRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found"
+        )
 
-    # ПРОВЕРКА ЛОГИНA
+    if not auth_service.verify_password(request.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid password"
+        )
     
-    if email == "test@example.com" and password == "password":  # Замените это условие вашей логикой
-        return JSONResponse(content={"success": True})
-    else:
-        return JSONResponse(content={"success": False, "message": "Invalid email or password"})
+    return JSONResponse(content={"success": True})
     
 
 if __name__ == '__main__':
