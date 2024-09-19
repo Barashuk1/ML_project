@@ -6,13 +6,15 @@ from sentence_transformers import SentenceTransformer
 from nltk.tokenize import sent_tokenize
 from sqlalchemy.orm import Session
 from transformers import pipeline
-from sqlalchemy import text
 from tqdm.asyncio import tqdm
+from sqlalchemy import text
 import pandas as pd
 import numpy as np
 import tiktoken
 import PyPDF2
 import nltk
+
+from src.repository.document import insert_data_history
 
 nltk.download('punkt_tab')
 nltk.download('punkt')
@@ -25,11 +27,9 @@ async def read_pdf(file: UploadFile = File(...)):
     :param file: The uploaded PDF file.
     :return: The extracted text from the PDF.
     """
-    # Check if the uploaded file is a PDF
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be a PDF")
 
-    # Read the PDF file and convert its content to text
     file_content = await file.read()
     pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_content))
     text = ""
@@ -45,7 +45,7 @@ async def num_tokens_from_string(string: str) -> int:
     return num_tokens
 
 
-async def chunk_text_by_sentences(text, max_tokens=150):
+async def chunk_text_by_sentences(text, max_tokens=100):
     sentences = sent_tokenize(text)
     chunks = []
     current_chunk = []
@@ -87,7 +87,7 @@ async def get_embeddings(text):
     :param text: The text to get embeddings for.
     :return: The embeddings for the text.
     """
-    model = SentenceTransformer('distilbert-base-nli-mean-tokens')
+    model = SentenceTransformer('distilbert-base-uncased')
     return model.encode(text)
 
 
@@ -95,7 +95,7 @@ async def combine_context_and_input(context, user_input):
     return f"User: {user_input}\nAssistant:{context}"
 
 
-async def get_completion_from_messages(context, user_input, model='distilgpt2', max_tokens=850):
+async def get_completion_from_messages(context, user_input, model='distilgpt2', max_tokens=400):
     generator = pipeline('text-generation', model=model)
     combined_text = await combine_context_and_input(context, user_input)
     response = generator(
@@ -103,12 +103,13 @@ async def get_completion_from_messages(context, user_input, model='distilgpt2', 
         max_new_tokens=max_tokens,
         truncation=True
     )
-    return response[0]['generated_text']
-
+    response = response[0]['generated_text'].split(']')[1]
+    return response
 
 async def get_top3_similar_docs(
         query_embedding: np.ndarray,
         user_id: int,
+        document_name: str,
         db: Session,
         limit: int = 3
 ) -> List[str]:
@@ -121,12 +122,14 @@ async def get_top3_similar_docs(
     :param limit: The number of similar documents to return (default is 5).
     :return: A list of tuples containing the content of similar documents.
     """
-    query_embedding = query_embedding.tolist()
+
+    query_embedding = query_embedding.flatten().tolist()[:768]
 
     query = text("""
     SELECT content
     FROM documents
     WHERE user_id = :user_id
+    AND document_name = :document_name
     ORDER BY embedding <=> CAST(:query_vector AS vector)
     LIMIT :limit
     """)
@@ -136,22 +139,21 @@ async def get_top3_similar_docs(
         {
             "user_id": user_id,
             "query_vector": query_embedding,
-            "limit": limit
+            "limit": limit,
+            "document_name": document_name
         }
     )
 
     return result.fetchall()
 
 
-async def process_input_with_retrieval(user_input, user_id: int,
+
+async def process_input_with_retrieval(document, question, user_id: int,
         db: Session) -> str:
-    # Step 1: Get documents related to the user input from database
-    related_docs = await get_top3_similar_docs(await get_embeddings(user_input), user_id, db)
+    related_docs = await get_top3_similar_docs(await get_embeddings(question), user_id, document[1], db)
 
-    # Step 2: Create context from related documents
-    context = f"Relevant information:"
+    context = f"Relevant information: {related_docs}"
 
-    # Step 3: Generate response using the context and user input
-    response = await get_completion_from_messages(context, user_input)
-    await document.insert_data_history(db, user_input, response, user_id)
+    response = await get_completion_from_messages(context, question)
+    await insert_data_history(db, question, response, user_id, document[1])
     return response

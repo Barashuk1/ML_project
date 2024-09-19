@@ -1,9 +1,7 @@
 from sqlalchemy.orm import Session
 from src.database.models import User
 from src.schemas import UserModel
-from sqlalchemy import func
 from src.schemas import *
-from fastapi import HTTPException
 
 
 async def get_user_by_email(
@@ -32,7 +30,8 @@ async def create_user(
     :return: The created user.
     """
     user_count = db.query(User).count()
-    new_user = User(**body.dict())
+    user_name=body.email.split('@')[0]
+    new_user = User(**body.model_dump(), user_name=user_name)
     new_user.role = 'admin' if user_count == 0 else 'user'
     db.add(new_user)
     db.commit()

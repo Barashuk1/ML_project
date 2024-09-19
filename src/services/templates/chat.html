@@ -132,16 +132,21 @@
         </div>
     
         <div class="input-group" style="margin-top: 20px;">
-            <input type="file" id="file-input" multiple>
+            <input type="file" id="file-input" accept="application/pdf">
             <button type="button" onclick="uploadFiles()">Upload Files</button>
         </div>
     </div>
     
     <script>
         // Fetch the list of documents from the server and populate the select element
+        const accessToken = localStorage.getItem('access_token');
         async function loadDocuments() {
             try {
-                const response = await fetch('/documents');
+                const response = await fetch('/ml_project/document/documents', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                }});
                 const data = await response.json();
                 
                 const select = document.getElementById('document-select');
@@ -174,10 +179,11 @@
             const documentSelected = document.getElementById('document-select').value;
 
             try {
-                const response = await fetch('/question', {
+                const response = await fetch('/ml_project/document/chat/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
                     },
                     body: JSON.stringify({
                         document: documentSelected,
@@ -188,7 +194,7 @@
 
                 const botMessage = document.createElement('div');
                 botMessage.classList.add('message', 'bot');
-                botMessage.textContent = data.answer;
+                botMessage.textContent = data.response;
                 chatBox.appendChild(botMessage);
             } catch (error) {
                 const botMessage = document.createElement('div');
@@ -203,28 +209,29 @@
 
         async function uploadFiles() {
             const fileInput = document.getElementById('file-input');
-            const files = fileInput.files;
+            const file = fileInput.files[0];
 
-            if (files.length === 0) {
+            if (!file) {
                 alert("Please select at least one file!");
                 return;
             }
 
             const formData = new FormData();
-            for (let i = 0; i < files.length; i++) {
-                formData.append('files', files[i]);
-            }
+            formData.append('file', file);
 
             try {
-                const response = await fetch('/upload', {
+                const response = await fetch('/ml_project/document/upload_file/', {
                     method: 'POST',
-                    body: formData
-                });
+                    body: formData,
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                }});
                 const data = await response.json();
                 alert(data.message);
             } catch (error) {
                 alert('Error: Unable to upload the files.');
-            }
+            };
+            loadDocuments();
         }
 
         window.onload = loadDocuments;

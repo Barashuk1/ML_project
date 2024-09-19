@@ -36,23 +36,6 @@ services:
     ports:
       - "${REDIS_PORT}:6379"
 
-  # app:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.app
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_started
-  #   environment:
-  #     DOCKER_SQLALCHEMY_DATABASE_URL: ${DOCKER_SQLALCHEMY_DATABASE_URL}
-  #     REDIS_DOCKER_URL: ${REDIS_URL}
-  #   ports:
-  #     - "${APP_PORT}:8000"
-  #   volumes:
-  #     - .:/app
-
 volumes:
   local_pgdata:
   pgadmin-data:

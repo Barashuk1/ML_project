@@ -139,7 +139,7 @@
       
       <button type="submit" class="btn">Register</button>
       <div class="login-page">
-          <p>Already have an account? <a href="/login">Log in</a></p>
+          <p>Already have an account? <a href="/ml_project/login-page">Log in</a></p>
       </div>
   </form>
 </div>
@@ -151,7 +151,7 @@
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
       
-      fetch('/submit_register', {
+      fetch('/ml_project/auth/submit_register', {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',
@@ -164,7 +164,9 @@
       .then(response => response.json())
       .then(data => {
           if (data.message === 'Registration successful!') {
-              window.location.href = '/';
+              window.location.href = '/ml_project/login-page';
+          } else if (data.message === 'Email already exists!') {
+              alert('Email already exists!');
           } else {
               alert('Registration failed.');
           }
